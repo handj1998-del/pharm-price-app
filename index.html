@@ -1,0 +1,37 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>약값비교 (시제품)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css"></head><body>
+<header><h1>💊 약값비교 <small>MVP 시제품 · 데이터는 이 기기에만 저장</small></h1></header>
+<main>
+<section id="tab-scan" class="tab">
+ <h2>영수증 스캔</h2>
+ <label class="upload">📷 영수증 사진 선택/촬영<input type="file" id="file" accept="image/*" capture="environment"></label>
+ <img id="preview" alt="">
+ <div id="ocrStatus" class="muted"></div>
+ <form id="review" hidden>
+  <h3>인식 결과 확인·수정</h3>
+  <p class="muted">OCR 결과는 틀릴 수 있어요. 저장 전에 꼭 확인해 주세요.</p>
+  <label>약국명<input id="phName" required></label>
+  <label>구매일<input id="phDate" type="date"></label>
+  <label>주소 (선택)<input id="phAddr"></label>
+  <div class="row"><label>위도 (선택)<input id="phLat" inputmode="decimal"></label><label>경도 (선택)<input id="phLng" inputmode="decimal"></label></div>
+  <button type="button" id="geoBtn" class="sub">📍 현재 위치를 약국 좌표로</button>
+  <table id="itemTbl"><thead><tr><th>품목명</th><th>수량</th><th>금액(원)</th><th></th></tr></thead><tbody></tbody></table>
+  <button type="button" id="addItem" class="sub">+ 품목 추가</button>
+  <details><summary>OCR 원문 보기</summary><pre id="rawText"></pre></details>
+  <button type="submit">저장하기</button>
+ </form>
+ <button id="manualBtn" class="sub">✏️ 사진 없이 직접 입력</button>
+</section>
+<section id="tab-history" class="tab" hidden><h2>내 구매 내역</h2><div id="sampleBar"></div><div id="historyList"></div></section>
+<section id="tab-compare" class="tab" hidden><h2>약별 가격 비교</h2><input id="search" placeholder="약 이름 검색"><div id="compareList"></div></section>
+<section id="tab-cheap" class="tab" hidden><h2>저렴한 약국</h2>
+ <select id="cheapMed"></select><div id="map"></div><div id="cheapList"></div>
+ <p class="muted">좌표가 입력된 약국만 지도에 표시됩니다.</p></section>
+</main>
+<nav><button data-tab="scan" class="on">📷<br>스캔</button><button data-tab="history">🧾<br>구매내역</button><button data-tab="compare">📊<br>가격비교</button><button data-tab="cheap">🗺️<br>저렴한 약국</button></nav>
+<div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="store.js"></script><script src="parse.js"></script><script src="app.js"></script></body></html>
