@@ -12,7 +12,7 @@
 <main>
 <section id="tab-scan" class="tab">
  <h2>영수증 스캔</h2>
- <label class="upload">📷 영수증 사진 선택/촬영<input type="file" id="file" accept="image/*" capture="environment"></label>
+ <div class="uprow"><label class="upload">📷 카메라로 촬영<input type="file" id="fileCam" accept="image/*" capture="environment"></label><label class="upload">🖼️ 갤러리에서 선택<input type="file" id="file" accept="image/*"></label></div>
  <div id="cropBox" hidden>
   <p class="muted">영수증 부분만 손가락으로 끌어 선택하면 더 정확해요 (선택 안 하면 자동으로 영수증 영역을 찾아요).</p>
   <canvas id="cropCv"></canvas>

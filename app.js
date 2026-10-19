@@ -39,6 +39,7 @@ function drawCrop(){const cv=$('#cropCv'),b=scan.bmp;if(!b)return;const r=scan.r
  cv.addEventListener('pointerup',()=>{st=null;if(scan.sel&&(scan.sel.w<0.1||scan.sel.h<0.1))scan.sel=null;drawCrop()});})();
 $('#rotBtn').onclick=()=>{scan.rot=(scan.rot+90)%360;scan.sel=null;drawCrop()};
 $('#resetCrop').onclick=()=>{scan.sel=null;drawCrop()};
+$('#fileCam').onchange=e=>$('#file').onchange(e);
 $('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;scan.file=f;scan.rot=0;scan.sel=null;$('#review').hidden=true;$('#procBox').hidden=true;
  OCR.getWorker().catch(()=>{});// 고르는 동안 OCR 엔진·한글 데이터 미리 받기
  try{scan.bmp=await Preproc.loadBitmap(f);$('#cropBox').hidden=false;drawCrop();$('#ocrStatus').textContent='';$('#cropBox').scrollIntoView({behavior:'smooth'})}
@@ -54,7 +55,7 @@ $('#review').onsubmit=async e=>{e.preventDefault();
  const items=[...document.querySelectorAll('#itemTbl tbody tr')].map(tr=>({name:tr.querySelector('.n').value,qty:tr.querySelector('.q').value,price:tr.querySelector('.p').value})).filter(i=>i.name.trim()&&+i.price>0);
  if(!items.length)return toast('품목을 1개 이상 입력해 주세요');
  try{await api('/api/purchases',{method:'POST',body:JSON.stringify({pharmacy:{name:$('#phName').value,address:$('#phAddr').value,lat:$('#phLat').value,lng:$('#phLng').value},date:$('#phDate').value,items})});
-  toast('저장했어요');$('#review').hidden=true;$('#procBox').hidden=true;$('#cropBox').hidden=true;$('#ocrStatus').textContent='';$('#file').value='';await refresh();show('history');}
+  toast('저장했어요');$('#review').hidden=true;$('#procBox').hidden=true;$('#cropBox').hidden=true;$('#ocrStatus').textContent='';$('#file').value='';$('#fileCam').value='';await refresh();show('history');}
  catch(err){toast(err.message)}};
 // 구매 내역
 function renderHistory(){const hasS=data.some(p=>p.sample);

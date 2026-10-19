@@ -24,3 +24,5 @@ pre{white-space:pre-wrap;font-size:12px;background:#fff;padding:8px}
 #procImg{max-width:100%;border:1px solid #ddd;margin-top:6px}
 tr.low input.n,tr.low input.p,input.low{background:#fff7cc;border-color:#e0b400}
 .hint{font-size:11px;color:#9a7a00;padding:0 3px 4px}
+
+.uprow{display:flex;gap:10px}.uprow .upload{flex:1;padding:20px 8px}
