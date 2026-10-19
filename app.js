@@ -11,27 +11,50 @@ function show(t){document.querySelectorAll('.tab').forEach(s=>s.hidden=s.id!=='t
  if(t==='cheap'){renderCheap();setTimeout(()=>map&&map.invalidateSize(),50);}}
 // 품목 편집
 function addRow(it={name:'',qty:1,price:''}){const tr=document.createElement('tr');
- tr.innerHTML=`<td><input class="n" value="${esc(it.name)}"></td><td><input class="q" type="number" min="1" value="${esc(it.qty)}"></td><td><input class="p" type="number" min="0" value="${esc(it.price)}"></td><td><button type="button" class="del">✕</button></td>`;
- tr.querySelector('.del').onclick=()=>tr.remove();$('#itemTbl tbody').appendChild(tr);}
+ const low=(it.conf!=null&&it.conf<70)||(it.low&&it.low.length)||it.orig;if(low)tr.classList.add('low');
+ const hint=[it.orig?`자동 보정 (원문: ${it.orig})`:'',it.conf!=null&&it.conf<70?`신뢰도 ${it.conf}%`:'',it.low&&it.low.length?`불확실: ${it.low.join(' ')}`:''].filter(Boolean).join(' · ');
+ tr.innerHTML=`<td><input class="n" value="${esc(it.name)}">${hint?`<div class="hint">${esc(hint)}</div>`:''}</td><td><input class="q" type="number" min="1" value="${esc(it.qty)}"></td><td><input class="p" type="number" min="0" value="${esc(it.price)}"></td><td><button type="button" class="del">✕</button></td>`;
+ tr.querySelector('.del').onclick=()=>tr.remove();tr.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>tr.classList.remove('low'),{once:true}));$('#itemTbl tbody').appendChild(tr);}
 function openReview(r,raw=''){const f=$('#review');f.hidden=false;$('#phName').value=r.pharmacy||'';$('#phDate').value=r.date||new Date().toISOString().slice(0,10);
+ $('#phName').classList.toggle('low',!!raw&&!r.pharmacy);$('#phDate').classList.toggle('low',!!raw&&!r.date);
  $('#phAddr').value='';$('#phLat').value='';$('#phLng').value='';$('#itemTbl tbody').innerHTML='';
- (r.items.length?r.items:[{name:'',qty:1,price:''}]).forEach(addRow);$('#rawText').textContent=raw;f.scrollIntoView({behavior:'smooth'});}
+ (r.items.length?r.items:[{name:'',qty:1,price:''}]).forEach(addRow);$('#rawText').textContent=raw;
+ $('#lowNote').hidden=!f.querySelector('tr.low,input.low');
+ if(r.pharmacy)$('#phName').dispatchEvent(new Event('change'));f.scrollIntoView({behavior:'smooth'});}
 $('#addItem').onclick=()=>addRow();
 $('#manualBtn').onclick=()=>openReview({items:[]});
 $('#geoBtn').onclick=()=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>{$('#phLat').value=p.coords.latitude.toFixed(6);$('#phLng').value=p.coords.longitude.toFixed(6)},()=>toast('위치를 가져올 수 없어요')):toast('위치 기능 미지원');
 // 이전에 저장한 같은 약국 좌표 자동 채움
 $('#phName').addEventListener('change',()=>{const p=data.find(x=>x.pharmacy.name===$('#phName').value.trim()&&x.pharmacy.lat!=null);
  if(p&&!$('#phLat').value){$('#phLat').value=p.pharmacy.lat;$('#phLng').value=p.pharmacy.lng;$('#phAddr').value=p.pharmacy.address||''}});
-$('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('#preview').src=URL.createObjectURL(f);
- const st=$('#ocrStatus');st.textContent='글자 인식 준비 중… (처음엔 한글 데이터 다운로드로 시간이 걸려요)';
- try{const {data:{text}}=await Tesseract.recognize(f,'kor+eng',{logger:m=>{if(m.status==='recognizing text')st.textContent=`글자 인식 중… ${Math.round(m.progress*100)}%`}});
-  window.__lastOcr=text;const r=parseReceipt(text);st.textContent=`인식 완료: 품목 ${r.items.length}개 찾음`;openReview(r,text);}
- catch(err){st.textContent='인식 실패: '+err.message+' — 직접 입력해 주세요.';openReview({items:[]});}};
+// 사진 선택 → 자르기 화면 → 인식
+const scan={file:null,bmp:null,rot:0,sel:null};
+function drawCrop(){const cv=$('#cropCv'),b=scan.bmp;if(!b)return;const r=scan.rot%180,W=r?b.height:b.width,H=r?b.width:b.height,s=Math.min(1,900/Math.max(W,H));
+ cv.width=W*s;cv.height=H*s;const x=cv.getContext('2d');x.save();x.translate(cv.width/2,cv.height/2);x.rotate(scan.rot*Math.PI/180);x.drawImage(b,-b.width*s/2,-b.height*s/2,b.width*s,b.height*s);x.restore();
+ if(scan.sel){const q=scan.sel;x.fillStyle='rgba(0,0,0,.45)';x.beginPath();x.rect(0,0,cv.width,cv.height);x.rect(q.x*cv.width,q.y*cv.height,q.w*cv.width,q.h*cv.height);x.fill('evenodd');
+  x.strokeStyle='#1976d2';x.lineWidth=3;x.strokeRect(q.x*cv.width,q.y*cv.height,q.w*cv.width,q.h*cv.height)}}
+(()=>{const cv=$('#cropCv');let st=null;const pos=e=>{const r=cv.getBoundingClientRect();return[Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(e.clientY-r.top)/r.height))]};
+ cv.addEventListener('pointerdown',e=>{st=pos(e);cv.setPointerCapture(e.pointerId)});
+ cv.addEventListener('pointermove',e=>{if(!st)return;const p=pos(e);scan.sel={x:Math.min(st[0],p[0]),y:Math.min(st[1],p[1]),w:Math.abs(p[0]-st[0]),h:Math.abs(p[1]-st[1])};drawCrop()});
+ cv.addEventListener('pointerup',()=>{st=null;if(scan.sel&&(scan.sel.w<0.1||scan.sel.h<0.1))scan.sel=null;drawCrop()});})();
+$('#rotBtn').onclick=()=>{scan.rot=(scan.rot+90)%360;scan.sel=null;drawCrop()};
+$('#resetCrop').onclick=()=>{scan.sel=null;drawCrop()};
+$('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;scan.file=f;scan.rot=0;scan.sel=null;$('#review').hidden=true;$('#procBox').hidden=true;
+ OCR.getWorker().catch(()=>{});// 고르는 동안 OCR 엔진·한글 데이터 미리 받기
+ try{scan.bmp=await Preproc.loadBitmap(f);$('#cropBox').hidden=false;drawCrop();$('#ocrStatus').textContent='';$('#cropBox').scrollIntoView({behavior:'smooth'})}
+ catch(err){$('#ocrStatus').textContent='이미지를 열 수 없어요: '+err.message}};
+$('#ocrBtn').onclick=async()=>{const st=$('#ocrStatus');$('#ocrBtn').disabled=true;st.textContent='이미지 보정 중… (처음엔 한글 인식 데이터를 받느라 시간이 걸려요)';
+ try{const r=await OCR.recognize(scan.file,{rotate:scan.rot,crop:scan.sel,parse:{knownPharmacies:[...new Set(data.filter(p=>!p.sample).map(p=>p.pharmacy.name))]},
+   onProgress:m=>{if(m.status==='recognizing text')st.textContent=`글자 인식 중… ${Math.round(m.progress*100)}%`;else if(/load/.test(m.status))st.textContent='인식 엔진 준비 중…'}});
+  window.__lastOcr=r.text;$('#procImg').src=r.canvas.toDataURL('image/jpeg',0.7);$('#procBox').hidden=false;$('#cropBox').hidden=true;
+  st.textContent=`인식 완료 (${(r.ms/1000).toFixed(1)}초): 품목 ${r.parsed.items.length}개 찾음`;openReview(r.parsed,r.text);}
+ catch(err){st.textContent='인식 실패: '+err.message+' — 직접 입력해 주세요.';openReview({items:[]});}
+ finally{$('#ocrBtn').disabled=false}};
 $('#review').onsubmit=async e=>{e.preventDefault();
  const items=[...document.querySelectorAll('#itemTbl tbody tr')].map(tr=>({name:tr.querySelector('.n').value,qty:tr.querySelector('.q').value,price:tr.querySelector('.p').value})).filter(i=>i.name.trim()&&+i.price>0);
  if(!items.length)return toast('품목을 1개 이상 입력해 주세요');
  try{await api('/api/purchases',{method:'POST',body:JSON.stringify({pharmacy:{name:$('#phName').value,address:$('#phAddr').value,lat:$('#phLat').value,lng:$('#phLng').value},date:$('#phDate').value,items})});
-  toast('저장했어요');$('#review').hidden=true;$('#preview').removeAttribute('src');$('#ocrStatus').textContent='';$('#file').value='';await refresh();show('history');}
+  toast('저장했어요');$('#review').hidden=true;$('#procBox').hidden=true;$('#cropBox').hidden=true;$('#ocrStatus').textContent='';$('#file').value='';await refresh();show('history');}
  catch(err){toast(err.message)}};
 // 구매 내역
 function renderHistory(){const hasS=data.some(p=>p.sample);

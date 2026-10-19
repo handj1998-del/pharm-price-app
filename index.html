@@ -13,8 +13,14 @@
 <section id="tab-scan" class="tab">
  <h2>영수증 스캔</h2>
  <label class="upload">📷 영수증 사진 선택/촬영<input type="file" id="file" accept="image/*" capture="environment"></label>
- <img id="preview" alt="">
+ <div id="cropBox" hidden>
+  <p class="muted">영수증 부분만 손가락으로 끌어 선택하면 더 정확해요 (선택 안 하면 자동으로 영수증 영역을 찾아요).</p>
+  <canvas id="cropCv"></canvas>
+  <div class="row"><button type="button" class="sub" id="rotBtn">↻ 90° 회전</button><button type="button" class="sub" id="resetCrop">선택 해제</button></div>
+  <button type="button" id="ocrBtn">🔍 글자 인식 시작</button>
+ </div>
  <div id="ocrStatus" class="muted"></div>
+ <details id="procBox" hidden><summary>보정된 이미지 보기</summary><img id="procImg" alt="보정 이미지"></details>
  <form id="review" hidden>
   <h3>인식 결과 확인·수정</h3>
   <p class="muted">OCR 결과는 틀릴 수 있어요. 저장 전에 꼭 확인해 주세요.</p>
@@ -23,6 +29,7 @@
   <label>주소 (선택)<input id="phAddr"></label>
   <div class="row"><label>위도 (선택)<input id="phLat" inputmode="decimal"></label><label>경도 (선택)<input id="phLng" inputmode="decimal"></label></div>
   <button type="button" id="geoBtn" class="sub">📍 현재 위치를 약국 좌표로</button>
+  <p class="muted" id="lowNote" hidden>🟨 노란색 칸은 인식 신뢰도가 낮거나 자동 보정된 항목이에요. 확인해 주세요.</p>
   <table id="itemTbl"><thead><tr><th>품목명</th><th>수량</th><th>금액(원)</th><th></th></tr></thead><tbody></tbody></table>
   <button type="button" id="addItem" class="sub">+ 품목 추가</button>
   <details><summary>OCR 원문 보기</summary><pre id="rawText"></pre></details>
@@ -40,4 +47,4 @@
 <div id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="store.js"></script><script src="parse.js"></script><script src="app.js"></script><script>if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));</script></body></html>
+<script src="store.js"></script><script src="preprocess.js"></script><script src="drugdict.js"></script><script src="parse.js"></script><script src="ocr.js"></script><script src="app.js"></script><script>if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));</script></body></html>

@@ -19,3 +19,8 @@ nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-t
 nav button{background:none;color:#777;margin:0;border-radius:0;font-size:12px;padding:8px 0}nav button.on{color:#1976d2;font-weight:bold}
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 14px;border-radius:20px;display:none;z-index:20}
 pre{white-space:pre-wrap;font-size:12px;background:#fff;padding:8px}
+
+#cropCv{width:100%;touch-action:none;border-radius:8px;display:block;margin:8px 0;background:#ddd}
+#procImg{max-width:100%;border:1px solid #ddd;margin-top:6px}
+tr.low input.n,tr.low input.p,input.low{background:#fff7cc;border-color:#e0b400}
+.hint{font-size:11px;color:#9a7a00;padding:0 3px 4px}
