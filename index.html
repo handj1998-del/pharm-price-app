@@ -37,7 +37,11 @@
  </form>
  <button id="manualBtn" class="sub">✏️ 사진 없이 직접 입력</button>
 </section>
-<section id="tab-history" class="tab" hidden><h2>내 구매 내역</h2><div id="sampleBar"></div><div id="historyList"></div></section>
+<section id="tab-history" class="tab" hidden><h2>내 구매 내역</h2>
+ <div class="card"><b>💾 백업</b><div class="muted">데이터는 이 기기에만 저장돼요. 폰을 바꾸거나 브라우저 데이터를 지우기 전에 백업해 두세요.</div>
+ <div class="row"><button class="sub" id="exportBtn">백업 내보내기</button><button class="sub" id="importBtn">백업 불러오기</button></div>
+ <input type="file" id="importFile" accept=".json,application/json" hidden></div>
+ <div id="sampleBar"></div><div id="historyList"></div></section>
 <section id="tab-compare" class="tab" hidden><h2>약별 가격 비교</h2><input id="search" placeholder="약 이름 검색"><div id="compareList"></div></section>
 <section id="tab-cheap" class="tab" hidden><h2>저렴한 약국</h2>
  <select id="cheapMed"></select><div id="map"></div><div id="cheapList"></div>

@@ -48,10 +48,11 @@ $('#ocrBtn').onclick=async()=>{const st=$('#ocrStatus');$('#ocrBtn').disabled=tr
  try{const r=await OCR.recognize(scan.file,{rotate:scan.rot,crop:scan.sel,parse:{knownPharmacies:[...new Set(data.filter(p=>!p.sample).map(p=>p.pharmacy.name))]},
    onProgress:m=>{if(m.status==='recognizing text')st.textContent=`글자 인식 중… ${Math.round(m.progress*100)}%`;else if(/load/.test(m.status))st.textContent='인식 엔진 준비 중…'}});
   window.__lastOcr=r.text;$('#procImg').src=r.canvas.toDataURL('image/jpeg',0.7);$('#procBox').hidden=false;$('#cropBox').hidden=true;
-  st.textContent=`인식 완료 (${(r.ms/1000).toFixed(1)}초): 품목 ${r.parsed.items.length}개 찾음`;openReview(r.parsed,r.text);}
+  st.textContent=`인식 완료 (${(r.ms/1000).toFixed(1)}초): 품목 ${r.parsed.items.length}개 찾음`;window.__ocrPharm=r.parsed.pharmacy||'';const fx=await api('/api/fixes');if(fx[r.parsed.pharmacy])r.parsed.pharmacy=fx[r.parsed.pharmacy];openReview(r.parsed,r.text);}
  catch(err){st.textContent='인식 실패: '+err.message+' — 직접 입력해 주세요.';openReview({items:[]});}
  finally{$('#ocrBtn').disabled=false}};
 $('#review').onsubmit=async e=>{e.preventDefault();
+ if(window.__ocrPharm&&$('#phName').value.trim()&&window.__ocrPharm!==$('#phName').value.trim())api('/api/fixes',{method:'POST',body:JSON.stringify({from:window.__ocrPharm,to:$('#phName').value.trim()})});window.__ocrPharm='';
  const items=[...document.querySelectorAll('#itemTbl tbody tr')].map(tr=>({name:tr.querySelector('.n').value,qty:tr.querySelector('.q').value,price:tr.querySelector('.p').value})).filter(i=>i.name.trim()&&+i.price>0);
  if(!items.length)return toast('품목을 1개 이상 입력해 주세요');
  try{await api('/api/purchases',{method:'POST',body:JSON.stringify({pharmacy:{name:$('#phName').value,address:$('#phAddr').value,lat:$('#phLat').value,lng:$('#phLng').value},date:$('#phDate').value,items})});
@@ -90,3 +91,20 @@ function renderCheap(){const meds=byMedicine(),sel=$('#cheapMed'),prev=sel.value
  if(pts.length)map.fitBounds(pts,{padding:[30,30],maxZoom:15});}
 $('#cheapMed').onchange=renderCheap;
 refresh();
+
+// 백업 내보내기/불러오기
+$('#exportBtn').onclick=async()=>{try{const b=await api('/api/backup');const d=new Date(),ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+ const name=`약값비교_백업_${ymd}.json`,blob=new Blob([JSON.stringify(b,null,1)],{type:'application/json'});
+ const file=typeof File==='function'?new File([blob],name,{type:'application/json'}):null;
+ if(file&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name});toast(`영수증 ${b.purchases.length}건을 백업했어요`);return}catch(e){if(e.name==='AbortError')return}}
+ const url=URL.createObjectURL(blob),el=document.createElement('a');el.href=url;el.download=name;document.body.appendChild(el);el.click();el.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
+ toast(`영수증 ${b.purchases.length}건을 백업 파일로 저장했어요`)}catch(e){toast('백업을 만들지 못했어요: '+e.message)}};
+$('#importBtn').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ try{if(f.size>20e6)throw new Error('파일이 너무 커요. 약값비교 백업 파일이 맞는지 확인해 주세요.');
+  let b;try{b=JSON.parse(await f.text())}catch{throw new Error('파일을 읽을 수 없어요. 손상되었거나 JSON 형식이 아니에요.')}
+  if(!b||b.app!=='약값비교'||!Array.isArray(b.purchases))throw new Error('약값비교 백업 파일이 아니에요. 「백업 내보내기」로 만든 .json 파일을 골라 주세요.');
+  const replace=confirm(`백업에 영수증 ${b.purchases.length}건이 있어요.\n\n[확인] 현재 데이터를 지우고 백업으로 바꾸기\n[취소] 현재 데이터에 합치기 (중복은 건너뜀)`);
+  const r=await api('/api/backup',{method:'POST',body:JSON.stringify({backup:b,mode:replace?'replace':'merge'})});
+  await refresh();toast(`${replace?'바꾸기':'합치기'} 완료: ${r.added}건 추가${r.dup?`, 중복 ${r.dup}건 건너뜀`:''}${r.skipped?`, 잘못된 ${r.skipped}건 제외`:''} (총 ${r.total}건)`)}
+ catch(err){toast(err.message)}};

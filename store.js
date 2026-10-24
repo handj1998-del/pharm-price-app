@@ -24,5 +24,24 @@ window.localApi=async function(u,o={}){const m=(o.method||'GET').toUpperCase(),d
   d.purchases.push(r);save(d);return r;}
  if((r=u.match(/^\/api\/purchases\/(.+)$/))&&m==='DELETE'){d.purchases=d.purchases.filter(x=>x.id!==r[1]);save(d);return{ok:true};}
  if(u==='/api/sample'){d.purchases=d.purchases.filter(x=>!x.sample);if(m==='POST')d.purchases=d.purchases.concat(SAMPLE());save(d);return{ok:true};}
+ if(u==='/api/fixes'&&m==='GET')return d.pharmacyFixes||{};
+ if(u==='/api/fixes'&&m==='POST'){const b=JSON.parse(o.body);if(b.from&&b.to&&b.from!==b.to){d.pharmacyFixes={...(d.pharmacyFixes||{}),[b.from]:b.to};save(d)}return{ok:true};}
+ if(u==='/api/backup'&&m==='GET')return {app:'약값비교',version:1,exportedAt:new Date().toISOString(),purchases:d.purchases,pharmacyFixes:d.pharmacyFixes||{}};
+ if(u==='/api/backup'&&m==='POST'){const {backup:b,mode}=JSON.parse(o.body);const v=validateBackup(b);
+  const key=p=>JSON.stringify([p.pharmacy.name,p.date,p.items.map(i=>[i.name,i.qty,i.price])]);
+  let base=mode==='replace'?[]:d.purchases.slice();const ids=new Set(base.map(p=>p.id)),keys=new Set(base.map(key));let added=0,dup=0;
+  for(const p of v.purchases){if(ids.has(p.id)||keys.has(key(p))){dup++;continue}base.push(p);ids.add(p.id);keys.add(key(p));added++}
+  d.purchases=base;d.pharmacyFixes=mode==='replace'?v.pharmacyFixes:{...(d.pharmacyFixes||{}),...v.pharmacyFixes};save(d);
+  return {added,dup,skipped:v.skipped,total:base.length,fixes:Object.keys(v.pharmacyFixes).length};}
  throw new Error('unknown '+m+' '+u);};
+function validateBackup(b){
+ if(!b||typeof b!=='object'||b.app!=='약값비교'||!Array.isArray(b.purchases))throw new Error('약값비교 백업 파일이 아니에요. 「백업 내보내기」로 만든 .json 파일을 골라 주세요.');
+ if(typeof b.version!=='number'||b.version>1)throw new Error('이 앱보다 새 버전에서 만든 백업이에요. 앱을 새로고침한 뒤 다시 시도해 주세요.');
+ let skipped=0;const purchases=[];
+ for(const p of b.purchases){const name=p&&p.pharmacy&&String(p.pharmacy.name||'').trim();
+  const items=Array.isArray(p&&p.items)?p.items.map(i=>({name:String(i&&i.name||'').trim(),qty:+(i&&i.qty)||1,price:Math.round(+(i&&i.price))})).filter(i=>i.name&&i.price>0):[];
+  if(!name||!items.length||!/^\d{4}-\d{2}-\d{2}$/.test(String(p.date||''))){skipped++;continue}
+  purchases.push({id:String(p.id||uid()),sample:!!p.sample,pharmacy:{name,address:String(p.pharmacy.address||''),lat:num(p.pharmacy.lat),lng:num(p.pharmacy.lng)},date:p.date,items})}
+ const pharmacyFixes={};if(b.pharmacyFixes&&typeof b.pharmacyFixes==='object')for(const[k,v]of Object.entries(b.pharmacyFixes))if(typeof v==='string'&&v.trim())pharmacyFixes[k]=v.trim();
+ return {purchases,pharmacyFixes,skipped};}
 })();
