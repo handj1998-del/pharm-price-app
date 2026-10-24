@@ -104,7 +104,17 @@ $('#importFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';
  try{if(f.size>20e6)throw new Error('파일이 너무 커요. 약값비교 백업 파일이 맞는지 확인해 주세요.');
   let b;try{b=JSON.parse(await f.text())}catch{throw new Error('파일을 읽을 수 없어요. 손상되었거나 JSON 형식이 아니에요.')}
   if(!b||b.app!=='약값비교'||!Array.isArray(b.purchases))throw new Error('약값비교 백업 파일이 아니에요. 「백업 내보내기」로 만든 .json 파일을 골라 주세요.');
-  const replace=confirm(`백업에 영수증 ${b.purchases.length}건이 있어요.\n\n[확인] 현재 데이터를 지우고 백업으로 바꾸기\n[취소] 현재 데이터에 합치기 (중복은 건너뜀)`);
+  const cur=(await api('/api/purchases')).length;const choice=await importModal(b.purchases.length,cur);if(!choice)return;const replace=choice==='replace';
   const r=await api('/api/backup',{method:'POST',body:JSON.stringify({backup:b,mode:replace?'replace':'merge'})});
   await refresh();toast(`${replace?'바꾸기':'합치기'} 완료: ${r.added}건 추가${r.dup?`, 중복 ${r.dup}건 건너뜀`:''}${r.skipped?`, 잘못된 ${r.skipped}건 제외`:''} (총 ${r.total}건)`)}
  catch(err){toast(err.message)}};
+
+function importModal(n,cur){return new Promise(res=>{const m=document.createElement('div');m.className='modal-bg';m.id='importModal';
+ m.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="imTitle"><h3 id="imTitle">백업 불러오기</h3>
+ <p>백업 파일 영수증 <b>${n}건</b> · 현재 저장된 영수증 <b>${cur}건</b></p>
+ <button id="imMerge">합치기</button><div class="muted small">현재 기록에 더해요. 중복은 건너뛰어요.</div>
+ <button id="imReplace" class="danger">바꾸기</button><div class="warn small">⚠️ 현재 기록 ${cur}건이 삭제되고 백업으로 바뀌어요.</div>
+ <button id="imCancel" class="sub">취소</button></div>`;
+ const done=v=>{m.remove();document.removeEventListener('keydown',esc);res(v)};const esc=e=>{if(e.key==='Escape')done(null)};
+ document.addEventListener('keydown',esc);m.onclick=e=>{if(e.target===m)done(null)};
+ document.body.appendChild(m);m.querySelector('#imMerge').onclick=()=>done('merge');m.querySelector('#imReplace').onclick=()=>done('replace');m.querySelector('#imCancel').onclick=()=>done(null);m.querySelector('#imMerge').focus();});}

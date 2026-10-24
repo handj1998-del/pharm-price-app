@@ -26,3 +26,9 @@ tr.low input.n,tr.low input.p,input.low{background:#fff7cc;border-color:#e0b400}
 .hint{font-size:11px;color:#9a7a00;padding:0 3px 4px}
 
 .uprow{display:flex;gap:10px}.uprow .upload{flex:1;padding:20px 8px}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:9999;padding:12px}
+.modal{background:#fff;border-radius:14px;padding:18px 16px;width:100%;max-width:420px;box-shadow:0 8px 30px rgba(0,0,0,.25);max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 8px}.modal p{margin:0 0 6px}.small{font-size:13px}
+button.danger{background:#d32f2f;color:#fff}.warn{color:#c62828}
+@media(min-width:600px){.modal-bg{align-items:center}}
